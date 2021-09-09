@@ -1,4 +1,5 @@
 use std::future::Future;
+use std::panic::catch_unwind;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -17,7 +18,11 @@ static QUEUE: Lazy<channel::Sender<Arc<Task>>> = Lazy::new(|| {
     // Spawn executor threads the first time the queue is created.
     for _ in 0..num_cpus::get().max(1) {
         let receiver = receiver.clone();
-        thread::spawn(move || receiver.iter().for_each(|task| task.run()));
+        thread::spawn(move || {
+            receiver.iter().for_each(|task| {
+                let _ = catch_unwind(|| task.run());
+            })
+        });
     }
 
     sender
