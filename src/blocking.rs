@@ -4,6 +4,8 @@ use std::task::{Context, Poll, Waker};
 
 use crossbeam::sync::Parker;
 
+use crate::waker_fn::waker_fn;
+
 /// Runs a future to completion on the current thread.
 pub fn block_on<F: Future>(future: F) -> F::Output {
     // Pin the future on the stack.
@@ -14,7 +16,7 @@ pub fn block_on<F: Future>(future: F) -> F::Output {
         static CACHE: RefCell<(Parker, Waker)> = {
             let parker = Parker::new();
             let unparker = parker.unparker().clone();
-            let waker = async_task::waker_fn(move || unparker.unpark());
+            let waker = waker_fn(move || unparker.unpark());
             RefCell::new((parker, waker))
         };
     }
